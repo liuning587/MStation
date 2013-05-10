@@ -325,7 +325,48 @@ static void pfn6(const char *pin, char *pout)
  */
 static void pfn7(const char *pin, char *pout)
 {
+    int ret = 0;
+    int *inlen = (int*)pin;
+    int *outlen = (int*)pout;
+    char *pos = (char*)pin + sizeof(int);
+    int keyID = 0;
+    char *state, *ESAMNo, *indata, *MAC;
+    const char *pfname = "7. MAC校验";
 
+    state = pos;
+    pos += strlen(pos) + 1;
+    memcpy(&keyID, pos, sizeof(keyID));
+    pos += sizeof(keyID);
+    ESAMNo = pos;
+    pos += strlen(pos) + 1;
+    indata = pos;
+    pos += strlen(pos) + 1;
+    if ((pos - pin - sizeof(int)) != *inlen)
+    {
+        log_print("%s[长度不匹配]", pfname);
+    }
+    *MAC = pout + sizeof(int);
+    ret = MACVerify(state, keyID, ESAMNo, indata, MAC);
+    memcpy(pout, &ret, sizeof(int));
+
+    switch (ret)
+    {
+        case 0:
+            log_print("%s[成功]", pfname);
+            break;
+        case 1001:
+            log_print("%s[密钥索引错误]", pfname);
+            break;
+        case 1002:
+            log_print("%s[ESAM序列号错误]", pfname);
+            break;
+        case 1003:
+            log_print("%s[源数据错误]", pfname);
+            break;
+        default:
+            log_print("%s[未知错误]", pfname);
+            break;
+    }
 }
 
 /**
@@ -337,7 +378,51 @@ static void pfn7(const char *pin, char *pout)
  */
 static void pfn8(const char *pin, char *pout)
 {
+    int ret = 0;
+    int *inlen = (int*)pin;
+    int *outlen = (int*)pout;
+    char *pos = (char*)pin + sizeof(int);
+    int keynum = 0;
+    char *state, *keyIDlist, *ESAMNo, *keycipherdata;
+    const char *pfname = "8. 对称密钥更新";
 
+    state = pos;
+    pos += strlen(pos) + 1;
+    memcpy(&keynum, pos, sizeof(keynum));
+    pos += sizeof(keynum);
+    keyIDlist = pos;
+    pos += strlen(pos) + 1;
+    ESAMNo = pos;
+    pos += strlen(pos) + 1;
+    if ((pos - pin - sizeof(int)) != *inlen)
+    {
+        log_print("%s[长度不匹配]", pfname);
+    }
+    *keycipherdata = pout + sizeof(int);
+
+    ret = SymmetricKeyUpdate(state, keynum, keyIDlist, ESAMNo, keycipherdata);
+    memcpy(pout, &ret, sizeof(int));
+    switch (ret)
+    {
+        case 0:
+            log_print("%s[成功]", pfname);
+            break;
+        case 1001:
+            log_print("%s[密钥状态错误]", pfname);
+            break;
+        case 1002:
+            log_print("%s[密钥条数错误]", pfname);
+            break;
+        case 1003:
+            log_print("%s[密钥列表错误]", pfname);
+            break;
+        case 1004:
+            log_print("%s[ESAM序列号错误]", pfname);
+            break;
+        default:
+            log_print("%s[未知错误]", pfname);
+            break;
+    }
 }
 
 /**
