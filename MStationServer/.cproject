@@ -39,6 +39,7 @@
 								</option>
 								<option id="gnu.c.link.option.libs.1769162650" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="MStationDll"/>
+									<listOptionValue builtIn="false" value="wsock32"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.752251349" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
