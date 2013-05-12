@@ -167,6 +167,7 @@ void socket_close(unsigned int socket)
 
 #ifdef __WIN32
         closesocket(socket);
+        WSACleanup(); //needed in winsock
 #else
         close(socket);
 #endif
