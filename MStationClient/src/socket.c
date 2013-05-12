@@ -164,7 +164,12 @@ void socket_close(unsigned int socket)
 {
     if (socket != 0)
     {
+
+#ifdef __WIN32
+        closesocket(socket);
+#else
         close(socket);
+#endif
     }
 }
 
