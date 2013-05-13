@@ -13,7 +13,7 @@
 /*-----------------------------------------------------------------------------
  Section: Macro Definitions
  ----------------------------------------------------------------------------*/
-#define DEFAULT_INI_FILE        "./MStation.ini"        /**< 默认配置文件 */
+#define DEFAULT_INI_FILE        "./MStationCfg.ini"     /**< 默认配置文件 */
 #define DEFAULT_LOG_FILE_NAME   "./MStationServer.txt"  /**< 默认日志文件 */
 #define DEFAULT_SOCKET_IP       "10.2.236.60"           /**< 默认tcp服务器 */
 #define DEFAULT_SOCKET_PORT     (2083)                  /**< 默认tcp端口 */
