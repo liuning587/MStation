@@ -118,6 +118,70 @@ unsigned int socket_init(const char *pHostName, unsigned short port)
 
 /**
  ******************************************************************************
+ * @brief      套接字服务器初始化
+ * @param[in]  *pHostName   : 主机名
+ * @param[in]  port         : 端口号
+ *
+ * @retval     0: 初始化失败
+ * @retval    >0: 初始化成功
+ ******************************************************************************
+ */
+unsigned int socket_server_init(const char *pHostName, unsigned short port)
+{
+#ifdef __WIN32
+    SOCKET sockfd;
+    SOCKADDR_IN server_addr;
+    WSADATA wsaData;
+#else
+    int sockfd = -1;
+    struct sockaddr_in server_addr;
+#endif
+    struct hostent *host;
+    int time_out = 1000 * 15; //超时15s
+
+    do
+    {
+#ifdef __WIN32
+        // Initialize Winsock
+        if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
+        {
+            log_print("Error at WSAStartup()\n");
+            break;
+        }
+#endif
+
+        if((host = gethostbyname(pHostName)) == NULL)
+        {
+            log_print("%s gethostname error\n", __FUNCTION__);
+            break;
+        }
+
+        if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+        {
+            log_print("socket error:%s\a\n", strerror(errno));
+            break;
+        }
+
+        memset(&server_addr, 0x00, sizeof(server_addr));
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_port = htons(port);
+        server_addr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+
+        if (bind(sockfd, (struct sockaddr *)(&server_addr),
+                sizeof(struct sockaddr)) == -1)
+        {
+            log_print("connect error:%s\n", strerror(errno));
+            break;
+        }
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&time_out, sizeof(int));
+        return (unsigned int)sockfd;
+    } while(0);
+
+    return 0u;
+}
+
+/**
+ ******************************************************************************
  * @brief      套接字发送数据
  * @param[in]  socket   : 套接字句柄
  * @param[in]  *pbuf    : 发送数据首地址

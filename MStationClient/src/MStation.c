@@ -42,7 +42,7 @@
 static char serverip[16] = {0};
 static unsigned short port = 0u;
 static char logflag = 0;
-static const char the_head[] = {'P', 'U', 'T'};
+static const char the_head[] = {'G', 'E', 'T'};
 
 /*-----------------------------------------------------------------------------
  Section: Local Function Prototypes

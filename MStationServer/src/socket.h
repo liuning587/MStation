@@ -38,6 +38,8 @@ extern int socket_send(unsigned int socket, const char *pbuf, int size);
 extern int socket_recv(unsigned int socket, char *pbuf, int size);
 extern void socket_close(unsigned int socket);
 
+extern unsigned int socket_server_init(const char *pHostName, unsigned short port);
+
 
 #endif /* SOCKET_H_ */
 /*--------------------------End of socket.h-----------------------------*/
