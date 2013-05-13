@@ -60,11 +60,11 @@ static FILE *the_log_fp = NULL;
  ******************************************************************************
  */
 int
-log_init(const char *pname)
+log_init(void)
 {
     if (the_log_fp == NULL)
     {
-        the_log_fp = fopen(pname, "a+");
+        the_log_fp = fopen(DEFAULT_LOG_FILE_NAME, "a+");
         if (the_log_fp == NULL)
         {
             return -1;
@@ -87,6 +87,7 @@ log_exit(void)
     if (the_log_fp != NULL)
     {
         (void)fclose(the_log_fp);
+        the_log_fp = NULL;
     }
 }
 
@@ -99,7 +100,7 @@ log_exit(void)
  ******************************************************************************
  */
 void
-logon(char logflag)
+log_on(char logflag)
 {
     the_log_flag = logflag & 0x01;
 }

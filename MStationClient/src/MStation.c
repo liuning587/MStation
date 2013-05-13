@@ -2,8 +2,10 @@
  ******************************************************************************
  * @file      MStation.c
  * @brief     C Source file of MStation.c.
- * @details   This file including all API functions's 
- *            implement of MStation.c.	
+ * @details   客户端与服务器通讯协议
+ *            客户端发送: 'G' 'E' 'T' + funID(1字节) + 长度(4字节) + 参数列表
+ *            服务端发送: 'P' 'U' 'T' + funID(1字节) + 长度(4字节) + tesam操作返回值(4字节) + 加密机返回数据
+ *
  *
  * @copyright Copyrigth(C), 2008-2012,Sanxing Electric Co.,Ltd.
  ******************************************************************************
@@ -12,7 +14,12 @@
 /*-----------------------------------------------------------------------------
  Section: Includes
  ----------------------------------------------------------------------------*/
+#include <string.h>
+#include "log.h"
+#include "ini.h"
+#include "socket.h"
 #include "MStation.h"
+
 
 /*-----------------------------------------------------------------------------
  Section: Type Definitions
@@ -32,7 +39,10 @@
 /*-----------------------------------------------------------------------------
  Section: Local Variables
  ----------------------------------------------------------------------------*/
-/* NONE */
+static char serverip[16] = {0};
+static unsigned short port = 0u;
+static char logflag = 0;
+static const char the_head[] = {'P', 'U', 'T'};
 
 /*-----------------------------------------------------------------------------
  Section: Local Function Prototypes
@@ -42,6 +52,24 @@
 /*-----------------------------------------------------------------------------
  Section: Function Definitions
  ----------------------------------------------------------------------------*/
+static unsigned int
+connect_start(void)
+{
+    (void)ini_get_server_ip(serverip);
+    (void)ini_get_server_port(&port);
+    (void)ini_get_log_flag(&logflag);
+
+    (void)log_init();
+    log_on(logflag);
+    return socket_init(serverip, port);
+}
+
+static void
+connect_close(unsigned int socketfd)
+{
+    socket_close(socketfd);
+    log_exit();
+}
 /**
  ******************************************************************************
  * @brief      1. 打开读卡器
@@ -55,7 +83,59 @@
 extern int
 MS_OpenPort()
 {
+    unsigned int socket = 0;
+    char buf[16] = {0};
+    int pos = 0;
+    int sendlen = 0;
+    int recvlen = 0;
+    int ret = 1;
 
+    if ((socket = connect_start()) == 0)
+    {
+        log_exit();
+        return 1;
+    }
+    memcpy(buf, the_head, 3);   //3字节GET
+    pos += 3;
+    buf[pos] = 1;
+    pos += 1;
+    memcpy(buf + pos, &sendlen, sizeof(int));
+    pos += sizeof(int);
+
+    do
+    {
+        if ((sendlen + 8) != socket_send(socket, buf, sendlen + 8))
+        {
+            log_print("%s发送数据数据出错\n", __FUNCTION__);
+            break;
+        }
+        memset(buf, 0x00, sizeof(buf));
+        recvlen = socket_recv(socket, buf, 12); //len = 8 + 4
+        if ((recvlen == -1) || (recvlen != 12))
+        {
+            log_print("%s接收数据出错[recvlen:%d]\n", __FUNCTION__, recvlen);
+            break;
+        }
+        pos = 0;
+        if ((memcmp(buf, "PUT", 3) != 0) || (buf[4] != 1))
+        {
+            log_print("%s 头不合法\n", __FUNCTION__);
+            break;
+        }
+        pos += 4;
+        memcpy(&recvlen, buf + pos, sizeof(int));
+        if (recvlen != sizeof(int))
+        {
+            log_print("%s 长度不合法\n", __FUNCTION__);
+            break;
+        }
+        pos += 4;
+        memcpy(&ret, buf + pos, sizeof(int));
+        ret = (ret == 0) ? ret : 1;
+    } while(0);
+    connect_close(socket);
+
+    return ret;
 }
 
 /**
@@ -71,7 +151,55 @@ MS_OpenPort()
 extern int
 MS_ClosePort()
 {
+    unsigned int socket = 0;
+    char buf[16] = {0};
+    int pos = 0;
+    int sendlen = 0;
+    int recvlen = 0;
+    int ret = 1;
 
+    if ((socket = connect_start()) == 0)
+    {
+        return 1;
+    }
+    memcpy(buf, the_head, 3);   //3字节GET
+    pos += 3;
+    buf[pos] = 2;
+    pos += 1;
+    memcpy(buf + pos, &sendlen, sizeof(int));
+    pos += sizeof(int);
+
+    do
+    {
+        if ((sendlen + 8) != socket_send(socket, buf, sendlen + 8))
+        {
+            break;
+        }
+        memset(buf, 0x00, sizeof(buf));
+        recvlen = socket_recv(socket, buf, 12); //len = 8 + 4
+        if ((recvlen == -1) || (recvlen != 12))
+        {
+            log_print("%s接收数据出错[recvlen:%d]\n", __FUNCTION__, recvlen);
+            break;
+        }
+        pos = 0;
+        if ((memcmp(buf, "PUT", 3) != 0) || (buf[4] != 2))
+        {
+            break;
+        }
+        pos += 4;
+        memcpy(&recvlen, buf + pos, sizeof(int));
+        if (recvlen != sizeof(int))
+        {
+            break;
+        }
+        pos += 4;
+        memcpy(&ret, buf + pos, sizeof(int));
+        ret = (ret == 0) ? ret : 1;
+    } while(0);
+    connect_close(socket);
+
+    return ret;
 }
 
 /**

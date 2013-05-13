@@ -22,6 +22,8 @@
 #include <netinet/in.h>
 #endif
 
+#include "log.h"
+
 /*-----------------------------------------------------------------------------
  Section: Type Definitions
  ----------------------------------------------------------------------------*/
@@ -71,6 +73,7 @@ unsigned int socket_init(const char *pHostName, unsigned short port)
     struct sockaddr_in server_addr;
 #endif
     struct hostent *host;
+    int time_out = 1000 * 15; //³¬Ê±15s
 
     do
     {
@@ -78,20 +81,20 @@ unsigned int socket_init(const char *pHostName, unsigned short port)
         // Initialize Winsock
         if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
         {
-            printf("Error at WSAStartup()\n");
+            log_print("Error at WSAStartup()\n");
             break;
         }
 #endif
 
         if((host = gethostbyname(pHostName)) == NULL)
         {
-            fprintf(stderr, "%s gethostname error\n", __FUNCTION__);
+            log_print("%s gethostname error\n", __FUNCTION__);
             break;
         }
 
         if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
         {
-            fprintf(stderr, "socket error:%s\a\n", strerror(errno));
+            log_print("socket error:%s\a\n", strerror(errno));
             break;
         }
 
@@ -103,9 +106,10 @@ unsigned int socket_init(const char *pHostName, unsigned short port)
         if (connect(sockfd, (struct sockaddr *)(&server_addr),
                 sizeof(struct sockaddr)) == -1)
         {
-            fprintf(stderr, "connect error:%s\n", strerror(errno));
+            log_print("connect error:%s\n", strerror(errno));
             break;
         }
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&time_out, sizeof(int));
         return (unsigned int)sockfd;
     } while(0);
 

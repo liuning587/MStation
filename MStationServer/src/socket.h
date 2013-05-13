@@ -33,7 +33,10 @@
 /*-----------------------------------------------------------------------------
  Section: Function Prototypes
  ----------------------------------------------------------------------------*/
-/* NONE */
+extern unsigned int socket_init(const char *pHostName, unsigned short port);
+extern int socket_send(unsigned int socket, const char *pbuf, int size);
+extern int socket_recv(unsigned int socket, char *pbuf, int size);
+extern void socket_close(unsigned int socket);
 
 
 #endif /* SOCKET_H_ */

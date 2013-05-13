@@ -33,9 +33,9 @@
 /*-----------------------------------------------------------------------------
  Section: Function Prototypes
  ----------------------------------------------------------------------------*/
-extern int log_init(const char *pname);
+extern int log_init(void);
 extern void log_exit(void);
-extern void logon(char logflag);
+extern void log_on(char logflag);
 extern void log_buf(const char *pformat, const char *pbuffer, int len);
 extern void log_print(const char *fmt, ...);
 
