@@ -925,7 +925,7 @@ static void pfn17(const char *pin, char *pout)
     }
 }
 
-
+#if 0
 int main(int argc, char **argv)
 {
     if (0 != log_init(DEFAULT_LOG_FILE_NAME))
@@ -958,5 +958,5 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
+#endif
 /*----------------------------MStationServer.c--------------------------------*/
