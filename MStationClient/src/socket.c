@@ -73,16 +73,21 @@ unsigned int socket_init(const char *pHostName, unsigned short port)
     struct sockaddr_in server_addr;
 #endif
     struct hostent *host;
-    int time_out = 1000 * 15; //³¬Ê±15s
+    int time_out = 1000 * 30; //³¬Ê±15s
 
     do
     {
 #ifdef __WIN32
-        // Initialize Winsock
-        if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
+        static char first = 0;
+        if (first == 0)
         {
-            log_print("Error at WSAStartup()\n");
-            break;
+            first = 1;
+            // Initialize Winsock
+            if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
+            {
+                log_print("Error at WSAStartup()\n");
+                break;
+            }
         }
 #endif
 
@@ -133,7 +138,23 @@ int socket_send(unsigned int socket, const char *pbuf, int size)
     {
         return -1;
     }
-    return send(socket, pbuf, size, 0);
+    int tmp_len = 0;
+    int send_len = 0;
+
+    while (send_len < size)
+    {
+        tmp_len = send(socket, pbuf + send_len, size - send_len, 0);
+        if (tmp_len < 0)
+        {
+            send_len = -1;
+            break;
+        }
+        send_len += tmp_len;
+    }
+    if (send_len > 0)
+        log_buf("socket send:", pbuf, send_len);
+
+    return send_len;
 }
 
 /**
@@ -153,7 +174,24 @@ int socket_recv(unsigned int socket, char *pbuf, int size)
     {
         return -1;
     }
-    return recv(socket, pbuf, size, 0);
+    int tmp_len = 0;
+    int recv_len = 0;
+
+    while (recv_len < size)
+    {
+        tmp_len = recv(socket, pbuf + recv_len, size - recv_len, 0);
+        if (tmp_len < 0)
+        {
+            recv_len = -1;
+            break;
+        }
+        recv_len += tmp_len;
+    }
+
+    if (recv_len > 0)
+        log_buf("socket recv:", pbuf, recv_len);
+
+    return recv_len;
 }
 
 /**
@@ -171,7 +209,7 @@ void socket_close(unsigned int socket)
 
 #ifdef __WIN32
         closesocket(socket);
-        WSACleanup(); //needed in winsock
+        //WSACleanup(); //needed in winsock
 #else
         close(socket);
 #endif

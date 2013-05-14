@@ -85,6 +85,26 @@ static pfn_mstation the_pfn[18] =
  ----------------------------------------------------------------------------*/
 /**
  ******************************************************************************
+ * @brief   操作加密机
+ * @param[in]  None
+ * @param[out] None
+ * @retval     None
+ ******************************************************************************
+ */
+void do_mstation(char pfn, const char *pin, char *pout)
+{
+    if ((pfn < 1) || (pfn > 17))
+    {
+        return;
+    }
+    if (the_pfn[(int)pfn] != NULL)
+    {
+        the_pfn[(int)pfn](pin, pout);
+    }
+}
+
+/**
+ ******************************************************************************
  * @brief      1. 打开读卡器
  * @param[in]  *pbuf    : 数据输入输出缓存
  * @retval     None
@@ -92,7 +112,9 @@ static pfn_mstation the_pfn[18] =
  */
 static void pfn1(const char *pin, char *pout)
 {
-
+    printf("%s\n", __FUNCTION__);
+    *(int*)pout = sizeof(int);
+    *(int*)(pout + sizeof(int)) = MS_OpenPort();
 }
 
 /**
@@ -104,7 +126,9 @@ static void pfn1(const char *pin, char *pout)
  */
 static void pfn2(const char *pin, char *pout)
 {
-
+    printf("%s\n", __FUNCTION__);
+    *(int*)pout = sizeof(int);
+    *(int*)(pout + sizeof(int)) = MS_ClosePort();
 }
 
 /**
@@ -136,13 +160,21 @@ static void pfn3(const char *pin, char *pout)
     pos += strlen(pos) + 1;
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
+        return ;
     }
 
     message1 = pout + 2 * sizeof(int);  //报文1; N字节(大于1K,小于2K) 
     message1[0] = '\0';
 
+    printf("ESAMNo:%s\n", ESAMNo);
+    printf("state:%s\n", state);
+    printf("VersionNum:%s\n", VersionNum);
+    printf("SessionID:%s\n", SessionID);
+    printf("R1:%s\n", R1);
+    memset(message1, 0x00, 2 * 2048);
     ret = SessionInitRec(ESAMNo, state, VersionNum, SessionID, R1, message1);
+    printf("ret:%d\n", ret);
     *outret = ret;
     *outlen = sizeof(ret);
 
@@ -150,25 +182,26 @@ static void pfn3(const char *pin, char *pout)
     {
         case 0:
             *outlen += strlen(message1) + 1;
-            log_print("%s[成功]", pfname);
+            printf("message1:%s\n", message1);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[ESAM序列号错误]", pfname);
+            log_print("%s[ESAM序列号错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[证书状态标识错误]", pfname);
+            log_print("%s[证书状态标识错误]\n", pfname);
             break;
         case 1003:
-            log_print("%s[版本号错误]", pfname);
+            log_print("%s[版本号错误]\n", pfname);
             break;
         case 1004:
-            log_print("%s[会话ID错误]", pfname);
+            log_print("%s[会话ID错误]\n", pfname);
             break;
         case 1005:
-            log_print("%s[随机数错误]", pfname);
+            log_print("%s[随机数错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知]", pfname);
+            log_print("%s[未知]\n", pfname);
             break;
     }
 }
@@ -202,7 +235,7 @@ static void pfn4(const char *pin, char *pout)
     pos += strlen(pos) + 1;
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
     message3 = pout + 2 * sizeof(int);
     message3 = '\0';
@@ -214,19 +247,19 @@ static void pfn4(const char *pin, char *pout)
     {
         case 0:
             *outlen += strlen(message3) + 1;
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[ESAM序列号错误]", pfname);
+            log_print("%s[ESAM序列号错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[证书状态标识错误]", pfname);
+            log_print("%s[证书状态标识错误]\n", pfname);
             break;
         case 1003:
-            log_print("%s[报文2错误]", pfname);
+            log_print("%s[报文2错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知]", pfname);
+            log_print("%s[未知]\n", pfname);
             break;
     }
 }
@@ -252,7 +285,7 @@ static void pfn5(const char *pin, char *pout)
     pos += strlen(pos) + 1;
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
 
     ret = SessionConsultVerify(message4);
@@ -262,13 +295,13 @@ static void pfn5(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[报文4错误]", pfname);
+            log_print("%s[报文4错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知]", pfname);
+            log_print("%s[未知]\n", pfname);
             break;
     }
 }
@@ -296,7 +329,7 @@ static void pfn6(const char *pin, char *pout)
     pos += strlen(pos) + 1;
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
 
     ret = SessionRecoveryVerify(ESAMNo, message2);
@@ -306,16 +339,16 @@ static void pfn6(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[ESAM序列号错误]", pfname);
+            log_print("%s[ESAM序列号错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[报文2错误]", pfname);
+            log_print("%s[报文2错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知]", pfname);
+            log_print("%s[未知]\n", pfname);
             break;
     }
 }
@@ -348,7 +381,7 @@ static void pfn7(const char *pin, char *pout)
     pos += strlen(pos) + 1;
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
     MAC = pout + 2 * sizeof(int);
     ret = MACVerify(state, keyID, ESAMNo, indata, MAC);
@@ -359,19 +392,19 @@ static void pfn7(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[密钥索引错误]", pfname);
+            log_print("%s[密钥索引错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[ESAM序列号错误]", pfname);
+            log_print("%s[ESAM序列号错误]\n", pfname);
             break;
         case 1003:
-            log_print("%s[源数据错误]", pfname);
+            log_print("%s[源数据错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }
@@ -404,7 +437,7 @@ static void pfn8(const char *pin, char *pout)
     pos += strlen(pos) + 1;
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
     keycipherdata = pout + 2 * sizeof(int);
 
@@ -414,22 +447,22 @@ static void pfn8(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[密钥状态错误]", pfname);
+            log_print("%s[密钥状态错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[密钥条数错误]", pfname);
+            log_print("%s[密钥条数错误]\n", pfname);
             break;
         case 1003:
-            log_print("%s[密钥列表错误]", pfname);
+            log_print("%s[密钥列表错误]\n", pfname);
             break;
         case 1004:
-            log_print("%s[ESAM序列号错误]", pfname);
+            log_print("%s[ESAM序列号错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }
@@ -464,7 +497,7 @@ static void pfn9(const char *pin, char *pout)
 
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
     CACertificateCipherData = pout + 2 * sizeof(int);
 
@@ -477,16 +510,16 @@ static void pfn9(const char *pin, char *pout)
     {
         case 0:
             //todo
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[终端公钥错误]", pfname);
+            log_print("%s[终端公钥错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[终端证书序列号错误]", pfname);
+            log_print("%s[终端证书序列号错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }
@@ -513,7 +546,7 @@ static void pfn10(const char *pin, char *pout)
 
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
     ret = InternalAuth(R4);
     *outret = ret;
@@ -521,13 +554,13 @@ static void pfn10(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1:
-            log_print("%s[错误]", pfname);
+            log_print("%s[错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }
@@ -562,7 +595,7 @@ static void pfn11(const char *pin, char *pout)
 
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
 
     ER5 = pout + 2 * sizeof(int);
@@ -573,22 +606,22 @@ static void pfn11(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[密钥状态标识错误]", pfname);
+            log_print("%s[密钥状态标识错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[ESAM序列号错误]", pfname);
+            log_print("%s[ESAM序列号错误]\n", pfname);
             break;
         case 1003:
-            log_print("%s[随机数4密文错误]", pfname);
+            log_print("%s[随机数4密文错误]\n", pfname);
             break;
         case 1004:
-            log_print("%s[随机数5错误]", pfname);
+            log_print("%s[随机数5错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }
@@ -621,7 +654,7 @@ static void pfn12(const char *pin, char *pout)
 
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
 
     StateER6MAC6 = pout + 2 * sizeof(int);
@@ -632,22 +665,22 @@ static void pfn12(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[密钥状态标识错误]", pfname);
+            log_print("%s[密钥状态标识错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[证书切换状态错误]", pfname);
+            log_print("%s[证书切换状态错误]\n", pfname);
             break;
         case 1003:
-            log_print("%s[ESAM序列号错误 ]", pfname);
+            log_print("%s[ESAM序列号错误 ]\n", pfname);
             break;
         case 1004:
-            log_print("%s[随机数6错误]", pfname);
+            log_print("%s[随机数6错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }
@@ -678,7 +711,7 @@ static void pfn13(const char *pin, char *pout)
 
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
 
     EnCounter = pout + 2 * sizeof(int);
@@ -689,19 +722,19 @@ static void pfn13(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[密钥状态标识错误]", pfname);
+            log_print("%s[密钥状态标识错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[ESAM序列号错误]", pfname);
+            log_print("%s[ESAM序列号错误]\n", pfname);
             break;
         case 1003:
-            log_print("%s[离线计数器数量错误]", pfname);
+            log_print("%s[离线计数器数量错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }
@@ -727,7 +760,7 @@ static void pfn14(const char *pin, char *pout)
     pos += strlen(pos) + 1;
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
     ChangeDataMAC = pout + 2 * sizeof(int);
 
@@ -737,13 +770,13 @@ static void pfn14(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[转加密授权数据错误]", pfname);
+            log_print("%s[转加密授权数据错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }
@@ -776,7 +809,7 @@ static void pfn15(const char *pin, char *pout)
     pos += sizeof(int);
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
     MeterKeyTaskData = pout + 2 * sizeof(int);
 
@@ -787,19 +820,19 @@ static void pfn15(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[表号分散因子错误]", pfname);
+            log_print("%s[表号分散因子错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[电表密钥状态错误]", pfname);
+            log_print("%s[电表密钥状态错误]\n", pfname);
             break;
         case 1003:
-            log_print("%s[任务类型错误]", pfname);
+            log_print("%s[任务类型错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }
@@ -829,7 +862,7 @@ static void pfn16(const char *pin, char *pout)
     pos += strlen(pos) + 1;
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
     taskdata = pout + 2 * sizeof(int);
 
@@ -839,16 +872,16 @@ static void pfn16(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[数据类型错误 ]", pfname);
+            log_print("%s[数据类型错误 ]\n", pfname);
             break;
         case 1002:
-            log_print("%s[任务数据错误]", pfname);
+            log_print("%s[任务数据错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }
@@ -888,7 +921,7 @@ static void pfn17(const char *pin, char *pout)
     pos += strlen(pos) + 1;
     if ((pos - pin - sizeof(int)) != *inlen)
     {
-        log_print("%s[长度不匹配]", pfname);
+        log_print("%s[长度不匹配]\n", pfname);
     }
     BroadData = pout + 2 * sizeof(int);
 
@@ -899,28 +932,28 @@ static void pfn17(const char *pin, char *pout)
     switch (ret)
     {
         case 0:
-            log_print("%s[成功]", pfname);
+            log_print("%s[成功]\n", pfname);
             break;
         case 1001:
-            log_print("%s[密钥状态错误]", pfname);
+            log_print("%s[密钥状态错误]\n", pfname);
             break;
         case 1002:
-            log_print("%s[广播密钥组号错误]", pfname);
+            log_print("%s[广播密钥组号错误]\n", pfname);
             break;
         case 1003:
-            log_print("%s[ESAM 序列号错误]", pfname);
+            log_print("%s[ESAM 序列号错误]\n", pfname);
             break;
         case 1004:
-            log_print("%s[组地址错误]", pfname);
+            log_print("%s[组地址错误]\n", pfname);
             break;
         case 1005:
-            log_print("%s[主站时间错误]", pfname);
+            log_print("%s[主站时间错误]\n", pfname);
             break;
         case 1006:
-            log_print("%s[广播数据错误]", pfname);
+            log_print("%s[广播数据错误]\n", pfname);
             break;
         default:
-            log_print("%s[未知错误]", pfname);
+            log_print("%s[未知错误]\n", pfname);
             break;
     }
 }

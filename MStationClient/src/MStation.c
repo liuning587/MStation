@@ -24,7 +24,13 @@
 /*-----------------------------------------------------------------------------
  Section: Type Definitions
  ----------------------------------------------------------------------------*/
-/* NONE */
+typedef struct
+{
+    char str[3];
+    char pfn[1];
+    int len;
+} head_t;
+
 
 /*-----------------------------------------------------------------------------
  Section: Constant Definitions
@@ -43,6 +49,8 @@ static char serverip[16] = {0};
 static unsigned short port = 0u;
 static char logflag = 0;
 static const char the_head[] = {'G', 'E', 'T'};
+static char inbuf[5 * 1024];
+static char outbuf[5 * 1024];
 
 /*-----------------------------------------------------------------------------
  Section: Local Function Prototypes
@@ -83,14 +91,14 @@ connect_close(unsigned int socketfd)
 extern int
 MS_OpenPort()
 {
-    unsigned int socket = 0;
+    unsigned int socketfd = 0;
     char buf[16] = {0};
     int pos = 0;
     int sendlen = 0;
     int recvlen = 0;
     int ret = 1;
 
-    if ((socket = connect_start()) == 0)
+    if ((socketfd = connect_start()) == 0)
     {
         log_exit();
         return 1;
@@ -104,20 +112,20 @@ MS_OpenPort()
 
     do
     {
-        if ((sendlen + 8) != socket_send(socket, buf, sendlen + 8))
+        if ((sendlen + 8) != socket_send(socketfd, buf, sendlen + 8))
         {
             log_print("%s发送数据数据出错\n", __FUNCTION__);
             break;
         }
         memset(buf, 0x00, sizeof(buf));
-        recvlen = socket_recv(socket, buf, 12); //len = 8 + 4
+        recvlen = socket_recv(socketfd, buf, 12); //len = 8 + 4
         if ((recvlen == -1) || (recvlen != 12))
         {
             log_print("%s接收数据出错[recvlen:%d]\n", __FUNCTION__, recvlen);
             break;
         }
         pos = 0;
-        if ((memcmp(buf, "PUT", 3) != 0) || (buf[4] != 1))
+        if ((memcmp(buf, "PUT", 3) != 0) || (buf[3] != 1))
         {
             log_print("%s 头不合法\n", __FUNCTION__);
             break;
@@ -133,7 +141,7 @@ MS_OpenPort()
         memcpy(&ret, buf + pos, sizeof(int));
         ret = (ret == 0) ? ret : 1;
     } while(0);
-    connect_close(socket);
+    connect_close(socketfd);
 
     return ret;
 }
@@ -151,14 +159,14 @@ MS_OpenPort()
 extern int
 MS_ClosePort()
 {
-    unsigned int socket = 0;
+    unsigned int socketfd = 0;
     char buf[16] = {0};
     int pos = 0;
     int sendlen = 0;
     int recvlen = 0;
     int ret = 1;
 
-    if ((socket = connect_start()) == 0)
+    if ((socketfd = connect_start()) == 0)
     {
         return 1;
     }
@@ -171,19 +179,19 @@ MS_ClosePort()
 
     do
     {
-        if ((sendlen + 8) != socket_send(socket, buf, sendlen + 8))
+        if ((sendlen + 8) != socket_send(socketfd, buf, sendlen + 8))
         {
             break;
         }
         memset(buf, 0x00, sizeof(buf));
-        recvlen = socket_recv(socket, buf, 12); //len = 8 + 4
+        recvlen = socket_recv(socketfd, buf, 12); //len = 8 + 4
         if ((recvlen == -1) || (recvlen != 12))
         {
             log_print("%s接收数据出错[recvlen:%d]\n", __FUNCTION__, recvlen);
             break;
         }
         pos = 0;
-        if ((memcmp(buf, "PUT", 3) != 0) || (buf[4] != 2))
+        if ((memcmp(buf, "PUT", 3) != 0) || (buf[3] != 2))
         {
             break;
         }
@@ -197,7 +205,7 @@ MS_ClosePort()
         memcpy(&ret, buf + pos, sizeof(int));
         ret = (ret == 0) ? ret : 1;
     } while(0);
-    connect_close(socket);
+    connect_close(socketfd);
 
     return ret;
 }
@@ -224,7 +232,100 @@ extern int
 SessionInitRec(char *ESAMNo, char *state, char *VersionNum,
         char *SessionID, char *R1, char *message1)
 {
+    unsigned int socket = 0;
+    char *buf = inbuf;
+    int pos = 0;
+    int sendlen = 0;
+    int recvlen = 0;
+    int ret = 1001;
+    head_t *head = (head_t *)inbuf;
 
+    if (strlen(ESAMNo) != 8 * 2)
+    {
+        return 1001;
+    }
+    if (strlen(state) != 1 *2)
+    {
+        return 1002;
+    }
+    if (strcmp(VersionNum, "01") != 0)
+    {
+        return 1003;
+    }
+    if (strlen(SessionID) != 1 * 2)
+    {
+        return 1004;
+    }
+    if (strlen(R1) != 16 * 2)
+    {
+        return 1005;
+    }
+
+    if ((socket = connect_start()) == 0)
+    {
+        return 1;
+    }
+    memcpy(head->str, the_head, 3);   //3字节GET
+    head->pfn[0] = 3;
+    buf += sizeof(head_t);
+    strcpy(buf, ESAMNo);
+    buf += strlen(ESAMNo) + 1;
+    strcpy(buf, state);
+    buf += strlen(state) + 1;
+    strcpy(buf, VersionNum);
+    buf += strlen(VersionNum) + 1;
+    strcpy(buf, SessionID);
+    buf += strlen(SessionID) + 1;
+    strcpy(buf, R1);
+    buf += strlen(R1) + 1;
+
+    sendlen = buf - inbuf;
+    head->len = sendlen - sizeof(head_t);
+    log_print("ESAMNo:%s\n", ESAMNo);
+    log_print("state:%s\n", state);
+    log_print("VersionNum:%s\n", VersionNum);
+    log_print("SessionID:%s\n", SessionID);
+    log_print("R1:%s\n", R1);
+
+    do
+    {
+        if (sendlen != socket_send(socket, inbuf, sendlen))
+        {
+            log_print("%s发送数据出错\n", __FUNCTION__);
+            break;
+        }
+        memset(buf, 0x00, sizeof(buf));
+        recvlen = socket_recv(socket, buf, 12); //len = 8 + 4
+        if ((recvlen == -1) || (recvlen != 12))
+        {
+            log_print("%s接收数据出错[recvlen:%d]\n", __FUNCTION__, recvlen);
+            break;
+        }
+        pos = 0;
+        if ((memcmp(buf, "PUT", 3) != 0) || (buf[3] != 3))
+        {
+            log_print("%s头校验错误!\n", __FUNCTION__);
+            break;
+        }
+        pos += 4;
+        memcpy(&recvlen, buf + pos, sizeof(int));
+        pos += 4;
+        memcpy(&ret, buf + pos, sizeof(int));
+        memset(outbuf, 0x00, sizeof(outbuf));
+        if (socket_recv(socket, outbuf, recvlen - 4) != recvlen - 4)
+        {
+            log_print("%s接收数据错误!\n", __FUNCTION__);
+            break;
+        }
+        if (ret == 0)   //成功则读取数据
+        {
+            log_print("message1:%s\n", message1);
+            strncpy(message1, outbuf, 1024 * 2 * 2);
+        }
+    } while(0);
+    connect_close(socket);
+
+    return ret;
 }
 
 /**

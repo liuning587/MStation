@@ -73,7 +73,7 @@ unsigned int socket_init(const char *pHostName, unsigned short port)
     struct sockaddr_in server_addr;
 #endif
     struct hostent *host;
-    int time_out = 1000 * 15; //超时15s
+    int time_out = 1000 * 30; //超时15s
 
     do
     {
@@ -137,7 +137,7 @@ unsigned int socket_server_init(const char *pHostName, unsigned short port)
     struct sockaddr_in server_addr;
 #endif
     struct hostent *host;
-    int time_out = 1000 * 15; //超时15s
+    int time_out = 1000 * 30; //超时15s
 
     do
     {
@@ -170,7 +170,7 @@ unsigned int socket_server_init(const char *pHostName, unsigned short port)
         if (bind(sockfd, (struct sockaddr *)(&server_addr),
                 sizeof(struct sockaddr)) == -1)
         {
-            log_print("connect error:%s\n", strerror(errno));
+            log_print("bind error:%s\n", strerror(errno));
             break;
         }
         setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&time_out, sizeof(int));
@@ -197,7 +197,23 @@ int socket_send(unsigned int socket, const char *pbuf, int size)
     {
         return -1;
     }
-    return send(socket, pbuf, size, 0);
+    int tmp_len = 0;
+    int send_len = 0;
+
+    while (send_len < size)
+    {
+        tmp_len = send(socket, pbuf + send_len, size - send_len, 0);
+        if (tmp_len < 0)
+        {
+            send_len = -1;
+            break;
+        }
+        send_len += tmp_len;
+    }
+    if (send_len > 0)
+        log_buf("socket send:", pbuf, send_len);
+
+    return send_len;
 }
 
 /**
@@ -217,7 +233,24 @@ int socket_recv(unsigned int socket, char *pbuf, int size)
     {
         return -1;
     }
-    return recv(socket, pbuf, size, 0);
+    int tmp_len = 0;
+    int recv_len = 0;
+
+    while (recv_len < size)
+    {
+        tmp_len = recv(socket, pbuf + recv_len, size - recv_len, 0);
+        if (tmp_len < 0)
+        {
+            recv_len = -1;
+            break;
+        }
+        recv_len += tmp_len;
+    }
+
+    if (recv_len > 0)
+        log_buf("socket recv:", pbuf, recv_len);
+
+    return recv_len;
 }
 
 /**

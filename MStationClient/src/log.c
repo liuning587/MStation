@@ -130,14 +130,14 @@ log_buf(const char *pformat,
             (void)fprintf(the_log_fp, "%02X ", *(pbuffer + i));
         }
         (void)fprintf(the_log_fp, "\n");
-
-        (void)printf(pformat);
-        for (i = 0; i < len; i++)
-        {
-            (void)printf("%02X ", *(pbuffer + i));
-        }
-        (void)printf("\n");
     }
+
+    (void)printf(pformat);
+    for (i = 0; i < len; i++)
+    {
+        (void)printf("%02X ", (int)*(pbuffer + i));
+    }
+    (void)printf("\n");
 }
 
 /**
@@ -159,5 +159,8 @@ log_print(const char *fmt, ...)
         (void)vfprintf(the_log_fp, fmt, args);
         (void)vprintf(fmt, args);
     }
+    va_start( args, fmt );
+    (void)vfprintf(stdout, fmt, args);
+    (void)vprintf(fmt, args);
 }
 /*----------------------------------log.c------------------------------------*/

@@ -91,7 +91,7 @@ typedef struct
 /*-----------------------------------------------------------------------------
  Section: Function Prototypes
  ----------------------------------------------------------------------------*/
-/* NONE */
+extern void do_mstation(char pfn, const char *pin, char *pout);
 
 
 #endif /* MSTATIONSERVER_H_ */
